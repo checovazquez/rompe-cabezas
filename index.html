@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ROMPE-MASECAS</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <div id="app">
+
+    <!-- Pantalla 1: Registro -->
+    <section id="screen-register" class="screen active">
+      <div class="container">
+        <img src="assets/logo-maseca.png" alt="MASECA" class="logo">
+        <h1>ROMPE-MASECAS</h1>
+        <p>Introduce tu número celular</p>
+
+        <input type="tel" id="phone-input" maxlength="10" placeholder="10 dígitos">
+        <button id="start-btn">Empezar</button>
+      </div>
+    </section>
+
+    <!-- Pantalla 2: Memoriza -->
+    <section id="screen-preview" class="screen">
+      <div class="container">
+        <h2>Memoriza el producto</h2>
+        <div id="preview-timer">10</div>
+        <img id="preview-image" src="" alt="Producto a memorizar" class="preview-image">
+      </div>
+    </section>
+
+    <!-- Pantalla 3: Juego -->
+    <section id="screen-game" class="screen">
+      <div class="game-shell">
+    
+        <div class="game-panel-left">
+          <div class="game-brand">
+            <h1>ROMPE-MASECAS</h1>
+            <p class="game-instructions">
+              Arrastra las piezas correctas al lugar correcto. Tienes 1 minuto.
+            </p>
+          </div>
+    
+          <div class="pieces-card">
+            <div class="pieces-title">Piezas</div>
+            <div id="pieces-area" class="pieces-area"></div>
+          </div>
+        </div>
+    
+        <div class="game-panel-right">
+          <div class="game-timer-card">
+            <div class="timer-label">Tiempo</div>
+            <div id="game-timer">00:00.00</div>
+          </div>
+    
+          <div class="board-card">
+            <div class="board-title">Arma el producto</div>
+            <div id="board" class="board"></div>
+          </div>
+        </div>
+    
+      </div>
+    </section>
+
+    <!-- Pantalla 4: Resultado -->
+    <section id="screen-result" class="screen">
+      <div class="container result-container">
+        <h2 id="result-title">Resultado</h2>
+        <p id="result-time">Tu tiempo: 00:00.00</p>
+    
+        <div class="ranking-box">
+          <h3>Top 20</h3>
+          <div id="ranking-list" class="ranking-list"></div>
+        </div>
+    
+        <button id="restart-btn">Jugar de nuevo</button>
+      </div>
+    </section>
+
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
