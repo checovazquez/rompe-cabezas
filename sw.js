@@ -1,6 +1,6 @@
 // Cache para que el juego funcione sin internet (modo kiosco).
 // Sube la version al cambiar cualquier archivo para que los iPads bajen lo nuevo.
-const VERSION = 'rm-v2.0.1';
+const VERSION = 'rm-v2.0.2';
 const FILES = [
   "./",
   "index.html",

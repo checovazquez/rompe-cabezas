@@ -171,7 +171,10 @@ function buildKeypad() {
   }
 }
 
-function modeInfo() { return MODES[store.mode]; }
+/** ?modo=libre en el link abre siempre sin registro (no cambia lo guardado en admin). */
+const urlMode = new URLSearchParams(location.search).get('modo');
+function currentMode() { return MODES[urlMode] ? urlMode : store.mode; }
+function modeInfo() { return MODES[currentMode()]; }
 function trimmedName() { return nameInput.value.trim(); }
 function nameValid() { return !modeInfo().asksName || trimmedName().length >= 2; }
 function phoneValid() { return !modeInfo().asksPhone || digits.length === 10; }
@@ -179,11 +182,13 @@ function phoneValid() { return !modeInfo().asksPhone || digits.length === 10; }
 function renderRegister() {
   const mode = modeInfo();
   const form = $('#register-form');
-  form.classList.toggle('mode-both', store.mode === 'both');
+  form.classList.toggle('mode-both', currentMode() === 'both');
   $('#name-block').hidden = !mode.asksName;
   $('#phone-block').hidden = !mode.asksPhone;
-  $('#name-label').textContent = store.mode === 'nickname' ? '¿Cómo te llamamos?' : 'Tu nombre o apodo';
-  $('#phone-label').textContent = store.mode === 'phone' ? 'Tu número celular' : 'Tu celular';
+  $('#free-block').hidden = !mode.noRanking;
+  $('#leaders-box').hidden = !!mode.noRanking;
+  $('#name-label').textContent = currentMode() === 'nickname' ? '¿Cómo te llamamos?' : 'Tu nombre o apodo';
+  $('#phone-label').textContent = currentMode() === 'phone' ? 'Tu número celular' : 'Tu celular';
   nameInput.enterKeyHint = mode.asksPhone ? 'done' : 'go';
 
   if (!digits) {
@@ -196,7 +201,7 @@ function renderRegister() {
   phoneDisplay.classList.toggle('valid', digits.length === 10);
   nameInput.classList.toggle('valid', trimmedName().length >= 2);
 
-  startBtn.classList.toggle('compact', store.mode === 'both');
+  startBtn.classList.toggle('compact', currentMode() === 'both');
   const ready = nameValid() && phoneValid();
   startBtn.classList.toggle('ready', ready);
   startBtn.style.opacity = ready ? '1' : '.55';
@@ -480,7 +485,7 @@ function finish(completed) {
   renderTimer(ms);
 
   game.record = store.add({
-    mode: store.mode,
+    mode: currentMode(),
     name: game.name,
     phone: game.phone,
     productId: game.product,
@@ -492,7 +497,7 @@ function finish(completed) {
     playedAt: new Date().toISOString(),
   });
 
-  const isRecord = completed && store.positionOf(game.record) === 1;
+  const isRecord = completed && !modeInfo().noRanking && store.positionOf(game.record) === 1;
   sound.playMusic(null, 0.3);
   if (completed) {
     board.classList.add('done');
@@ -539,7 +544,9 @@ function showResult(isRecord) {
     main.textContent = `${r.piecesPlaced} de 9`;
   }
 
-  const pos = store.positionOf(r);
+  const noRanking = !!modeInfo().noRanking;
+  $('#screen-result').classList.toggle('no-ranking', noRanking);
+  const pos = noRanking ? null : store.positionOf(r);
   $('#result-place').textContent = pos ? `Lugar #${pos} de ${store.leaderboard.length}` : '';
 
   $('#lb-event').textContent = store.currentEvent.name;

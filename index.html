@@ -37,13 +37,17 @@
           <span class="chip chip-yellow">3. Gana</span>
         </div>
 
-        <div class="leaders pop" style="--d:.32s">
+        <div id="leaders-box" class="leaders pop" style="--d:.32s">
           <div class="leaders-title">HOY VAN GANANDO</div>
           <div id="leaders-list"></div>
         </div>
       </div>
 
       <form id="register-form" class="sticker register-form pop" style="--d:.25s" novalidate>
+        <div id="free-block" class="free-block" hidden>
+          <span class="field-label">¿Listo para el reto?</span>
+          <p class="free-text">Memoriza el empaque 10 segundos y ármalo en menos de 1 minuto.</p>
+        </div>
         <div id="name-block" class="field-block">
           <label for="name-input" id="name-label" class="field-label">¿Cómo te llamamos?</label>
           <input id="name-input" class="text-field" type="text" maxlength="16" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Nombre o apodo" enterkeyhint="go">

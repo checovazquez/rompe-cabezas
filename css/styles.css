@@ -244,6 +244,14 @@ img { display: block; -webkit-user-drag: none; }
 .leader-row .time { font-variant-numeric: tabular-nums; }
 .leaders-empty { font-size: 22px; }
 
+.free-block { display: flex; flex-direction: column; gap: 10px; }
+.free-text { margin: 0; font-size: 20px; font-weight: 500; line-height: 1.35; color: var(--muted); }
+
+/* Modo sin registro: sin ranking en el resultado */
+#screen-result.no-ranking { justify-content: center; }
+#screen-result.no-ranking .leaderboard { display: none; }
+#screen-result.no-ranking .summary { width: 620px; }
+
 .register-form {
   width: 440px;
   padding: 28px;
