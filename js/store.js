@@ -18,8 +18,8 @@ export const MODES = {
     foot: 'Solo se pide celular; en el ranking se ve enmascarado (******1234).' },
   both: { label: 'Ambos', asksName: true, asksPhone: true,
     foot: 'Se pide apodo y celular. En el ranking se ve el apodo; el celular solo sale en el CSV.' },
-  libre: { label: 'Sin registro', asksName: false, asksPhone: false, noRanking: true,
-    foot: 'No pide datos y no muestra ranking. Las partidas se guardan anónimas para el CSV. También se abre directo con ?modo=libre en el link.' },
+  libre: { label: 'Sin registro', asksName: false, asksPhone: false, noRanking: true, maxGameMs: 30_000,
+    foot: 'No pide datos, no muestra ranking y da 30 segundos para armar. Las partidas se guardan anónimas para el CSV. También se abre directo con ?modo=libre en el link.' },
 };
 
 const DATA_KEY = 'rompeMasecas.data.v2';

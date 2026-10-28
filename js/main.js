@@ -102,10 +102,13 @@ function clearTimers() {
 }
 const later = (ms, fn) => game.timers.push(setTimeout(fn, ms));
 
+/** Tiempo máximo de la partida: 60 s normal, 30 s en modo sin registro. */
+function maxMs() { return modeInfo().maxGameMs ?? CONFIG.maxGameMs; }
+
 function elapsedMs() {
   if (game.finalMs != null) return game.finalMs;
   if (!game.startAt) return 0;
-  return Math.min(CONFIG.maxGameMs, Math.round(performance.now() - game.startAt));
+  return Math.min(maxMs(), Math.round(performance.now() - game.startAt));
 }
 
 // ---------------------------------------------------------------- Inicio
@@ -243,6 +246,7 @@ function startPreview(name, phone) {
   game.phone = phone;
   game.product = CONFIG.productIds[Math.floor(Math.random() * CONFIG.productIds.length)];
   $('#preview-image').src = productSrc(game.product);
+  $('#time-limit-text').textContent = maxMs() === 60_000 ? '1 minuto' : `${maxMs() / 1000} segundos`;
   setCountdown(CONFIG.previewSeconds);
   show('preview');
   sound.play('start');
@@ -332,8 +336,8 @@ function startGame() {
   const tick = () => {
     const ms = elapsedMs();
     renderTimer(ms);
-    if (ms >= CONFIG.maxGameMs) { finish(false); return; }
-    const secondsLeft = Math.ceil((CONFIG.maxGameMs - ms) / 1000);
+    if (ms >= maxMs()) { finish(false); return; }
+    const secondsLeft = Math.ceil((maxMs() - ms) / 1000);
     if (secondsLeft <= 10 && secondsLeft !== game.lastUrgentSecond) {
       game.lastUrgentSecond = secondsLeft;
       sound.play('tick_urgent');
@@ -345,9 +349,9 @@ function startGame() {
 }
 
 function renderTimer(ms) {
-  const left = CONFIG.maxGameMs - ms;
+  const left = maxMs() - ms;
   $('#timer-text').textContent = formatTime(ms);
-  $('#timer-fill').style.width = `${Math.max(0, left / CONFIG.maxGameMs) * 100}%`;
+  $('#timer-fill').style.width = `${Math.max(0, left / maxMs()) * 100}%`;
   const pill = $('#timer-pill');
   const urgent = left <= 10_000;
   pill.classList.toggle('urgent', urgent);
@@ -480,7 +484,7 @@ function finish(completed) {
   if (screen !== 'game' || game.finalMs != null) return;
   cancelDrag();
   cancelAnimationFrame(game.raf);
-  const ms = completed ? elapsedMs() : CONFIG.maxGameMs;
+  const ms = completed ? elapsedMs() : maxMs();
   game.finalMs = ms;
   renderTimer(ms);
 

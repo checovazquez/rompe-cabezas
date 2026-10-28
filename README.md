@@ -12,7 +12,7 @@ Las dos versiones se ven y juegan igual; cada una guarda su propio ranking.
 - Modos de jugador (nombre, teléfono o ambos), Top 10 por evento, historial y export a CSV.
 - Música y efectos (se activan con el primer toque, regla de los navegadores).
 - **Admin:** mantén presionado el logo 3 s.
-- **Sin registro:** modo en el admin, o link directo con `?modo=libre` (no pide datos ni muestra ranking; las partidas se guardan anónimas para el CSV).
+- **Sin registro:** modo en el admin, o link directo con `?modo=libre` (no pide datos ni muestra ranking, 30 s para armar; las partidas se guardan anónimas para el CSV).
 - Los datos viven en el navegador (localStorage) de cada dispositivo.
 
 Probar en local: `python3 -m http.server` y abrir http://localhost:8000.
