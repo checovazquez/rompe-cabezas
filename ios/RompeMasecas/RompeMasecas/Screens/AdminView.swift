@@ -17,6 +17,7 @@ struct AdminView: View {
 
     var body: some View {
         @Bindable var ranking = game.ranking
+        @Bindable var sound = SoundManager.shared
 
         NavigationStack {
             Form {
@@ -32,6 +33,40 @@ struct AdminView: View {
                     Text("Jugadores")
                 } footer: {
                     Text(modeFooter)
+                }
+
+                // Sonido
+                Section {
+                    Toggle(isOn: $sound.musicOn) {
+                        Label("Música", systemImage: "music.note")
+                    }
+                    if sound.musicOn {
+                        Slider(value: $sound.musicVolume, in: 0...1) {
+                            Text("Volumen música")
+                        } minimumValueLabel: {
+                            Image(systemName: "speaker.fill")
+                        } maximumValueLabel: {
+                            Image(systemName: "speaker.wave.3.fill")
+                        }
+                    }
+                    Toggle(isOn: $sound.sfxOn) {
+                        Label("Efectos", systemImage: "speaker.wave.2")
+                    }
+                    if sound.sfxOn {
+                        Slider(value: $sound.sfxVolume, in: 0...1) {
+                            Text("Volumen efectos")
+                        } minimumValueLabel: {
+                            Image(systemName: "speaker.fill")
+                        } maximumValueLabel: {
+                            Image(systemName: "speaker.wave.3.fill")
+                        } onEditingChanged: { editing in
+                            if !editing { sound.playCorrect(5) }
+                        }
+                    }
+                } header: {
+                    Text("Sonido")
+                } footer: {
+                    Text("El volumen general se controla con los botones del iPad. Suena aunque el iPad esté en silencio.")
                 }
 
                 // 2. Leaderboard actual

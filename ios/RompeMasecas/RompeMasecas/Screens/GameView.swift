@@ -215,7 +215,10 @@ struct GameView: View {
     private func dragGesture(for piece: Piece) -> some Gesture {
         DragGesture(minimumDistance: 2, coordinateSpace: .named(gameSpace))
             .onChanged { value in
-                if dragging == nil { dragging = piece }
+                if dragging == nil {
+                    dragging = piece
+                    SoundManager.shared.play(.pickup)
+                }
                 guard dragging == piece else { return } // un solo dedo a la vez
                 dragLocation = value.location
             }

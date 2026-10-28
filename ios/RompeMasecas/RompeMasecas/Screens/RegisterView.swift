@@ -173,6 +173,7 @@ private struct Keypad: View {
                 GridRow {
                     ForEach(row, id: \.self) { key in
                         Button {
+                            SoundManager.shared.play(.tap)
                             onKey()
                             tap(key)
                         } label: {

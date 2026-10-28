@@ -33,6 +33,8 @@ final class GameModel {
     private var pieceTimesMs: [Int] = []
 
     private var loopTask: Task<Void, Never>?
+    private var lastUrgentSecond = 0
+    private let sound = SoundManager.shared
 
     init(ranking: RankingStore) {
         self.ranking = ranking
@@ -58,12 +60,16 @@ final class GameModel {
         product = GameConfig.productIds.randomElement().map { Product(id: $0) }
         previewRemaining = GameConfig.previewSeconds
         screen = .preview
+        sound.play(.start)
 
         loopTask = Task { @MainActor [self] in
             while previewRemaining > 0 {
                 try? await Task.sleep(for: .seconds(1))
                 if Task.isCancelled { return }
                 previewRemaining -= 1
+                if previewRemaining > 0 {
+                    sound.play(previewRemaining <= 3 ? .beep : .tick)
+                }
             }
             startGame()
         }
@@ -82,8 +88,10 @@ final class GameModel {
         pieceTimesMs = []
         finalMs = nil
         lastRecord = nil
+        lastUrgentSecond = 0
         startDate = .now
         screen = .game
+        sound.play(.go)
 
         loopTask = Task { @MainActor [self] in
             while !Task.isCancelled {
@@ -92,6 +100,13 @@ final class GameModel {
                 if elapsedMs >= GameConfig.maxGameMs {
                     finish(completed: false)
                     return
+                }
+                // Ultimos 10 s: tic de reloj y musica mas rapida.
+                let secondsLeft = Int((Double(GameConfig.maxGameMs - elapsedMs) / 1000).rounded(.up))
+                if secondsLeft <= 10, secondsLeft != lastUrgentSecond {
+                    lastUrgentSecond = secondsLeft
+                    sound.play(.tickUrgent)
+                    sound.setMusicRate(1.12)
                 }
             }
         }
@@ -104,11 +119,13 @@ final class GameModel {
 
         guard piece.productId == product.id, piece.position == position else {
             wrongDrops += 1
+            sound.play(.wrong)
             return .wrong
         }
 
         placed[position] = piece
         pieceTimesMs.append(elapsedMs)
+        sound.playCorrect(placed.count)
         if placed.count == 9 {
             finish(completed: true)
         }
@@ -139,9 +156,14 @@ final class GameModel {
         ranking.add(record)
         lastRecord = record
 
+        let isFirstPlace = completed && ranking.position(of: record) == 1
+        sound.playMusic(nil, fade: 0.3)
+        if !completed { sound.play(.timeout) }
+
         // Pausa corta para que se vea la ultima pieza entrar.
         Task { @MainActor [self] in
             try? await Task.sleep(for: .milliseconds(completed ? 600 : 0))
+            if completed { sound.play(isFirstPlace ? .record : .win) }
             if screen == .game { screen = .result }
         }
     }

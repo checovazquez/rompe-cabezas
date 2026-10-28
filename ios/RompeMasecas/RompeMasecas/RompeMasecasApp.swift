@@ -35,6 +35,15 @@ struct RootView: View {
             }
         }
         .animation(.easeInOut(duration: 0.25), value: game.screen)
+        .onChange(of: game.screen, initial: true) { _, screen in
+            // Musica por pantalla; el conteo y el resultado van sin musica.
+            switch screen {
+            case .register: SoundManager.shared.playMusic(.menu)
+            case .preview: SoundManager.shared.playMusic(nil)
+            case .game: SoundManager.shared.playMusic(.game)
+            case .result: break // el GameModel ya la apago con fade
+            }
+        }
         .foregroundStyle(Theme.text)
         .preferredColorScheme(.light)
         .statusBarHidden()
