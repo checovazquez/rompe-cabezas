@@ -14,7 +14,8 @@ final class GameModel {
     let ranking: RankingStore
 
     private(set) var screen: Screen = .register
-    private(set) var phone = ""
+    private(set) var playerName: String?
+    private(set) var playerPhone: String?
     private(set) var product: Product?
     private(set) var previewRemaining = GameConfig.previewSeconds
 
@@ -25,7 +26,11 @@ final class GameModel {
 
     private(set) var startDate: Date?
     private(set) var finalMs: Int?
-    private(set) var lastEntry: RankingEntry?
+    private(set) var lastRecord: GameRecord?
+
+    // Metricas de la partida
+    private var wrongDrops = 0
+    private var pieceTimesMs: [Int] = []
 
     private var loopTask: Task<Void, Never>?
 
@@ -46,9 +51,10 @@ final class GameModel {
 
     // MARK: - Flujo
 
-    func start(phone: String) {
+    func start(name: String?, phone: String?) {
         loopTask?.cancel()
-        self.phone = phone
+        playerName = name
+        playerPhone = phone
         product = GameConfig.productIds.randomElement().map { Product(id: $0) }
         previewRemaining = GameConfig.previewSeconds
         screen = .preview
@@ -72,8 +78,10 @@ final class GameModel {
 
         trayPieces = (correct + distractors).shuffled()
         placed = [:]
+        wrongDrops = 0
+        pieceTimesMs = []
         finalMs = nil
-        lastEntry = nil
+        lastRecord = nil
         startDate = .now
         screen = .game
 
@@ -94,9 +102,13 @@ final class GameModel {
         guard screen == .game, finalMs == nil, let product,
               let position, placed[position] == nil, !isPlaced(piece) else { return .ignored }
 
-        guard piece.productId == product.id, piece.position == position else { return .wrong }
+        guard piece.productId == product.id, piece.position == position else {
+            wrongDrops += 1
+            return .wrong
+        }
 
         placed[position] = piece
+        pieceTimesMs.append(elapsedMs)
         if placed.count == 9 {
             finish(completed: true)
         }
@@ -111,15 +123,21 @@ final class GameModel {
         let ms = completed ? elapsedMs : GameConfig.maxGameMs
         finalMs = ms
 
-        let entry = RankingEntry(
-            phone: phone,
-            timeMs: ms,
+        let record = GameRecord(
+            eventId: ranking.currentEvent.id,
+            mode: ranking.mode,
+            name: playerName,
+            phone: playerPhone,
             productId: product.id,
             completed: completed,
+            timeMs: ms,
+            piecesPlaced: placed.count,
+            wrongDrops: wrongDrops,
+            pieceTimesMs: pieceTimesMs,
             playedAt: .now
         )
-        ranking.add(entry)
-        lastEntry = entry
+        ranking.add(record)
+        lastRecord = record
 
         // Pausa corta para que se vea la ultima pieza entrar.
         Task { @MainActor [self] in
@@ -131,14 +149,17 @@ final class GameModel {
     func reset() {
         loopTask?.cancel()
         loopTask = nil
-        phone = ""
+        playerName = nil
+        playerPhone = nil
         product = nil
         previewRemaining = GameConfig.previewSeconds
         trayPieces = []
         placed = [:]
+        wrongDrops = 0
+        pieceTimesMs = []
         startDate = nil
         finalMs = nil
-        lastEntry = nil
+        lastRecord = nil
         screen = .register
     }
 }

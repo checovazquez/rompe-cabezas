@@ -2,75 +2,149 @@ import SwiftUI
 
 struct RegisterView: View {
     @Environment(GameModel.self) private var game
+    @State private var name = ""
     @State private var digits = ""
     @State private var showAdmin = false
     @State private var shakes: CGFloat = 0
+    @FocusState private var nameFocused: Bool
 
-    private var isValid: Bool { digits.count == 10 }
+    private var mode: PlayerMode { game.ranking.mode }
+    private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var nameValid: Bool { !mode.asksName || trimmedName.count >= 2 }
+    private var phoneValid: Bool { !mode.asksPhone || digits.count == 10 }
+    private var isValid: Bool { nameValid && phoneValid }
 
     var body: some View {
         HStack(spacing: 48) {
-            // Marca
-            VStack(spacing: 20) {
-                Image("logo")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: 230, maxHeight: 290)
-                    // Mantener presionado 3 s: panel de administracion.
-                    .onLongPressGesture(minimumDuration: 3) { showAdmin = true }
-
-                Text("ROMPE-MASECAS")
-                    .font(.system(size: 52, weight: .black))
-                    .foregroundStyle(Theme.green)
-                    .minimumScaleFactor(0.6)
-                    .lineLimit(1)
-
-                Text("Memoriza el producto y ármalo\nen menos de 1 minuto")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(Theme.muted)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity)
-
-            // Captura de celular
-            VStack(spacing: 18) {
-                Text("Introduce tu número celular")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(Theme.muted)
-
-                Text(displayPhone)
-                    .font(.system(size: 34, weight: .bold, design: .rounded).monospacedDigit())
-                    .foregroundStyle(digits.isEmpty ? Theme.muted.opacity(0.5) : Theme.text)
-                    .frame(maxWidth: .infinity, minHeight: 70)
-                    .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .strokeBorder(isValid ? Theme.green : Theme.line, lineWidth: 2.5)
-                    )
-                    .modifier(Shake(animatableData: shakes))
-
-                Keypad(digits: $digits)
-
-                Button("Empezar") {
-                    if isValid {
-                        game.start(phone: digits)
-                    } else {
-                        withAnimation(.linear(duration: 0.3)) { shakes += 1 }
-                    }
-                }
-                .buttonStyle(PrimaryButtonStyle())
-                .opacity(isValid ? 1 : 0.5)
-            }
-            .frame(width: 380)
+            brand
+            form.frame(width: 380)
         }
         .padding(40)
         .frame(maxWidth: 940)
         .card(padding: 8)
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea(.keyboard)
+        .contentShape(Rectangle())
+        .onTapGesture { nameFocused = false }
         .sheet(isPresented: $showAdmin) {
             AdminView()
         }
+    }
+
+    // MARK: - Marca
+
+    private var brand: some View {
+        VStack(spacing: 20) {
+            Image("logo")
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: 230, maxHeight: 290)
+                // Mantener presionado 3 s: panel de administracion.
+                .onLongPressGesture(minimumDuration: 3) {
+                    nameFocused = false
+                    showAdmin = true
+                }
+
+            Text("ROMPE-MASECAS")
+                .font(.system(size: 52, weight: .black))
+                .foregroundStyle(Theme.green)
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+
+            Text("Memoriza el producto y ármalo\nen menos de 1 minuto")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(Theme.muted)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Captura
+
+    private var form: some View {
+        VStack(spacing: 14) {
+            if mode.asksName {
+                fieldLabel(mode == .nickname ? "¿Cómo te llamamos en el ranking?" : "Tu nombre o apodo")
+
+                TextField("Nombre o apodo", text: $name)
+                    .focused($nameFocused)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled()
+                    .submitLabel(mode.asksPhone ? .done : .go)
+                    .onSubmit {
+                        if !mode.asksPhone { startTapped() }
+                    }
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
+                    .frame(minHeight: 64)
+                    .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(borderColor(valid: trimmedName.count >= 2, focused: nameFocused), lineWidth: 2.5)
+                    )
+                    .modifier(Shake(animatableData: nameValid ? 0 : shakes))
+                    .onChange(of: name) { _, newValue in
+                        if newValue.count > GameConfig.nameMaxLength {
+                            name = String(newValue.prefix(GameConfig.nameMaxLength))
+                        }
+                    }
+            }
+
+            if mode.asksPhone {
+                fieldLabel(mode == .phone ? "Introduce tu número celular" : "Tu celular")
+
+                Text(displayPhone)
+                    .font(.system(size: 32, weight: .bold, design: .rounded).monospacedDigit())
+                    .foregroundStyle(digits.isEmpty ? Theme.muted.opacity(0.5) : Theme.text)
+                    .frame(maxWidth: .infinity, minHeight: 64)
+                    .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(digits.count == 10 ? Theme.green : Theme.line, lineWidth: 2.5)
+                    )
+                    .modifier(Shake(animatableData: phoneValid ? 0 : shakes))
+
+                Keypad(digits: $digits, keyHeight: mode == .both ? 52 : 60) {
+                    nameFocused = false
+                }
+            }
+
+            if mode == .nickname {
+                Text("Aparecerás en el Top \(GameConfig.rankingLimit)")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Theme.muted)
+            }
+
+            Button("Empezar") { startTapped() }
+                .buttonStyle(PrimaryButtonStyle())
+                .opacity(isValid ? 1 : 0.5)
+                .padding(.top, 4)
+        }
+    }
+
+    private func fieldLabel(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 20, weight: .semibold))
+            .foregroundStyle(Theme.muted)
+    }
+
+    private func borderColor(valid: Bool, focused: Bool) -> Color {
+        if valid { return Theme.green }
+        return focused ? Theme.green.opacity(0.5) : Theme.line
+    }
+
+    private func startTapped() {
+        guard isValid else {
+            withAnimation(.linear(duration: 0.3)) { shakes += 1 }
+            return
+        }
+        nameFocused = false
+        game.start(
+            name: mode.asksName ? trimmedName : nil,
+            phone: mode.asksPhone ? digits : nil
+        )
     }
 
     /// "81 2345 6789" con guiones bajos para lo que falta.
@@ -83,6 +157,8 @@ struct RegisterView: View {
 
 private struct Keypad: View {
     @Binding var digits: String
+    var keyHeight: CGFloat = 60
+    var onKey: () -> Void = {}
 
     private let rows: [[String]] = [
         ["1", "2", "3"],
@@ -92,15 +168,16 @@ private struct Keypad: View {
     ]
 
     var body: some View {
-        Grid(horizontalSpacing: 12, verticalSpacing: 12) {
+        Grid(horizontalSpacing: 12, verticalSpacing: 10) {
             ForEach(rows, id: \.self) { row in
                 GridRow {
                     ForEach(row, id: \.self) { key in
                         Button {
+                            onKey()
                             tap(key)
                         } label: {
                             label(for: key)
-                                .frame(maxWidth: .infinity, minHeight: 60)
+                                .frame(maxWidth: .infinity, minHeight: keyHeight)
                                 .background(Theme.bg, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 14, style: .continuous)
