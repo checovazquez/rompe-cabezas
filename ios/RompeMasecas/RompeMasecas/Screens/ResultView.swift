@@ -128,11 +128,10 @@ struct ResultView: View {
         return "\(errors) · \(Int((record.accuracy * 100).rounded()))% precisión"
     }
 
-    // MARK: - Top 20
+    // MARK: - Top 10
 
     private var leaderboard: some View {
         let entries = game.ranking.top
-        let half = (GameConfig.rankingLimit + 1) / 2
 
         return VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
@@ -149,10 +148,7 @@ struct ResultView: View {
                     .font(.fiesta(20, .bold))
                     .foregroundStyle(Theme.muted)
             } else {
-                HStack(alignment: .top, spacing: 12) {
-                    column(Array(entries.prefix(half)), offset: 0)
-                    column(Array(entries.dropFirst(half)), offset: half)
-                }
+                rows(entries)
             }
             Spacer(minLength: 0)
         }
@@ -162,28 +158,32 @@ struct ResultView: View {
         .sticker()
     }
 
-    private func column(_ list: [GameRecord], offset: Int) -> some View {
+    /// Una sola columna a todo lo ancho: el tiempo nunca se corta.
+    private func rows(_ list: [GameRecord]) -> some View {
         VStack(spacing: 6) {
             ForEach(0..<list.count, id: \.self) { i in
                 let entry = list[i]
-                let pos = i + offset + 1
+                let pos = i + 1
                 let isMe = entry.id == record?.id
-                HStack(spacing: 10) {
+                HStack(spacing: 14) {
                     Text("\(pos)")
-                        .font(.fiesta(15))
-                        .frame(width: 30, height: 30)
+                        .font(.fiesta(18))
+                        .frame(width: 36, height: 36)
                         .background(Circle().fill(Theme.medal(pos)))
                     Text(entry.displayName)
                         .lineLimit(1)
                         .truncationMode(.tail)
-                    Spacer(minLength: 6)
+                    Spacer(minLength: 12)
                     Text(entry.completed ? entry.timeText : "\(entry.piecesPlaced)/9")
                         .monospacedDigit()
                         .foregroundStyle(entry.completed ? Theme.ink : Theme.muted)
+                        .fixedSize()
+                        .layoutPriority(1)
                 }
-                .font(.fiesta(19, isMe ? .heavy : .bold))
-                .padding(.horizontal, 10)
-                .frame(height: 44)
+                .font(.fiesta(24, isMe ? .heavy : .bold))
+                .padding(.horizontal, 14)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(isMe ? Theme.yellow : (pos % 2 == 0 ? Theme.cream2 : Color.clear))
@@ -192,7 +192,7 @@ struct ResultView: View {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .strokeBorder(isMe ? Theme.ink : Color.clear, lineWidth: 3)
                 )
-                .popIn(appeared, delay: 0.3 + Double(pos) * 0.03, from: 0.85)
+                .popIn(appeared, delay: 0.3 + Double(pos) * 0.04, from: 0.85)
             }
         }
         .frame(maxWidth: .infinity, alignment: .top)

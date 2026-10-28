@@ -6,7 +6,7 @@ enum GameConfig {
     static let previewSeconds = 10
     static let maxGameMs = 60_000
     static let distractorCount = 11
-    static let rankingLimit = 20
+    static let rankingLimit = 10
     static let nameMaxLength = 16
     /// Segundos en la pantalla de resultado antes de regresar solo al inicio.
     static let resultAutoResetSeconds = 45
