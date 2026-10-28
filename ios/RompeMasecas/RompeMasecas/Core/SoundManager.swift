@@ -39,23 +39,42 @@ final class SoundManager {
         sfxVolume = d.float(forKey: "snd.sfxVolume")
         musicVolume = d.float(forKey: "snd.musicVolume")
 
-        // .playback: suena aunque el iPad este en silencio.
-        // Fuera del hilo principal: activar la sesion puede tardar y trabar la UI.
-        DispatchQueue.global(qos: .userInitiated).async {
+        // Todo el arranque de audio (sesion + carga de sonidos) va fuera del hilo
+        // principal: activar la sesion o preparar reproductores puede trabar la UI.
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            // .playback: suena aunque el iPad este en silencio.
             let session = AVAudioSession.sharedInstance()
             try? session.setCategory(.playback, mode: .default)
             try? session.setActive(true)
-        }
 
-        for s in SFX.allCases { load(sfx: s.rawValue) }
-        for i in 1...9 { load(sfx: "correct_\(i)") }
-        for m in Music.allCases {
-            guard let url = Bundle.main.url(forResource: m.rawValue, withExtension: "wav"),
-                  let p = try? AVAudioPlayer(contentsOf: url) else { continue }
-            p.numberOfLoops = -1
-            p.enableRate = true
-            p.prepareToPlay()
-            musicPlayers[m] = p
+            var sfx: [String: AVAudioPlayer] = [:]
+            let names = SFX.allCases.map(\.rawValue) + (1...9).map { "correct_\($0)" }
+            for name in names {
+                guard let url = Bundle.main.url(forResource: name, withExtension: "wav"),
+                      let p = try? AVAudioPlayer(contentsOf: url) else { continue }
+                p.prepareToPlay()
+                sfx[name] = p
+            }
+
+            var music: [Music: AVAudioPlayer] = [:]
+            for m in Music.allCases {
+                guard let url = Bundle.main.url(forResource: m.rawValue, withExtension: "wav"),
+                      let p = try? AVAudioPlayer(contentsOf: url) else { continue }
+                p.numberOfLoops = -1
+                p.enableRate = true
+                p.prepareToPlay()
+                music[m] = p
+            }
+
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.sfxPlayers = sfx
+                self.musicPlayers = music
+                // Si una pantalla pidio musica antes de terminar de cargar, arrancarla ya.
+                if let pending = self.wantedMusic, self.currentMusic == nil {
+                    self.playMusic(pending)
+                }
+            }
         }
     }
 
@@ -75,13 +94,6 @@ final class SoundManager {
         p.volume = sfxVolume
         p.currentTime = 0
         p.play()
-    }
-
-    private func load(sfx name: String) {
-        guard let url = Bundle.main.url(forResource: name, withExtension: "wav"),
-              let p = try? AVAudioPlayer(contentsOf: url) else { return }
-        p.prepareToPlay()
-        sfxPlayers[name] = p
     }
 
     private func stopAllSFX() {
