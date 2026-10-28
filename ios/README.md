@@ -29,5 +29,12 @@ Música y efectos originales estilo marimba en `RompeMasecas/Sounds` (WAV). Mús
 (se acelera los últimos 10 s), conteo, piezas (la correcta sube de nota con cada pieza), error,
 victoria, récord (#1 del evento) y tiempo agotado. Suena aunque el iPad esté en silencio.
 
+## Widget de inicio
+Tamaños grande y extra grande: récord del día, Top 3 / Top 5 del evento actual y acceso directo al juego.
+Se actualiza solo después de cada partida (la app comparte el ranking por el App Group
+`group.com.checovazquez.rompemasecas`).
+- Para correr la app usa el scheme **RompeMasecas**. El scheme del widget pide tamaño chico por default y
+  falla; si lo usas, cambia `_XCWidgetFamily` a `systemLarge` en **Edit Scheme › Run › Arguments**.
+
 ## Configuración
 `RompeMasecas/Core/Models.swift` › `GameConfig`.
