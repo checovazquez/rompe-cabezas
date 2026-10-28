@@ -18,6 +18,8 @@ export const MODES = {
     foot: 'Solo se pide celular; en el ranking se ve enmascarado (******1234).' },
   both: { label: 'Ambos', asksName: true, asksPhone: true,
     foot: 'Se pide apodo y celular. En el ranking se ve el apodo; el celular solo sale en el CSV.' },
+  libre: { label: 'Sin registro', asksName: false, asksPhone: false, noRanking: true, maxGameMs: 30_000,
+    foot: 'No pide datos, no muestra ranking y da 30 segundos para armar. Las partidas se guardan anónimas para el CSV. También se abre directo con ?modo=libre en el link.' },
 };
 
 const DATA_KEY = 'rompeMasecas.data.v2';
@@ -59,6 +61,8 @@ export function ranked(list) {
     return new Date(a.playedAt) - new Date(b.playedAt);
   });
 }
+
+const isRanked = (r) => r.mode !== 'libre';
 
 const uuid = () => (crypto.randomUUID ? crypto.randomUUID()
   : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (ch) => {
@@ -104,7 +108,8 @@ export class RankingStore {
 
   get currentEvent() { return this.events[this.events.length - 1]; }
   recordsFor(event) { return this.records.filter((r) => r.eventId === event.id); }
-  get leaderboard() { return ranked(this.recordsFor(this.currentEvent)); }
+  /** Las partidas "sin registro" no entran al ranking (solo al CSV). */
+  get leaderboard() { return ranked(this.recordsFor(this.currentEvent).filter(isRanked)); }
   get top() { return this.leaderboard.slice(0, CONFIG.rankingLimit); }
 
   positionOf(record) {
@@ -148,7 +153,7 @@ export class RankingStore {
     const place = {};
     for (const ev of this.events) {
       names[ev.id] = ev.name;
-      ranked(this.recordsFor(ev)).forEach((r, i) => { place[r.id] = i + 1; });
+      ranked(this.recordsFor(ev).filter(isRanked)).forEach((r, i) => { place[r.id] = i + 1; });
     }
     const pad = (n) => String(n).padStart(2, '0');
     const header = ['id', 'evento', 'lugar_en_evento', 'fecha', 'hora', 'fecha_iso', 'modo', 'nombre', 'telefono',

@@ -102,10 +102,13 @@ function clearTimers() {
 }
 const later = (ms, fn) => game.timers.push(setTimeout(fn, ms));
 
+/** Tiempo máximo de la partida: 60 s normal, 30 s en modo sin registro. */
+function maxMs() { return modeInfo().maxGameMs ?? CONFIG.maxGameMs; }
+
 function elapsedMs() {
   if (game.finalMs != null) return game.finalMs;
   if (!game.startAt) return 0;
-  return Math.min(CONFIG.maxGameMs, Math.round(performance.now() - game.startAt));
+  return Math.min(maxMs(), Math.round(performance.now() - game.startAt));
 }
 
 // ---------------------------------------------------------------- Inicio
@@ -171,7 +174,10 @@ function buildKeypad() {
   }
 }
 
-function modeInfo() { return MODES[store.mode]; }
+/** ?modo=libre en el link abre siempre sin registro (no cambia lo guardado en admin). */
+const urlMode = new URLSearchParams(location.search).get('modo');
+function currentMode() { return MODES[urlMode] ? urlMode : store.mode; }
+function modeInfo() { return MODES[currentMode()]; }
 function trimmedName() { return nameInput.value.trim(); }
 function nameValid() { return !modeInfo().asksName || trimmedName().length >= 2; }
 function phoneValid() { return !modeInfo().asksPhone || digits.length === 10; }
@@ -179,11 +185,13 @@ function phoneValid() { return !modeInfo().asksPhone || digits.length === 10; }
 function renderRegister() {
   const mode = modeInfo();
   const form = $('#register-form');
-  form.classList.toggle('mode-both', store.mode === 'both');
+  form.classList.toggle('mode-both', currentMode() === 'both');
   $('#name-block').hidden = !mode.asksName;
   $('#phone-block').hidden = !mode.asksPhone;
-  $('#name-label').textContent = store.mode === 'nickname' ? '¿Cómo te llamamos?' : 'Tu nombre o apodo';
-  $('#phone-label').textContent = store.mode === 'phone' ? 'Tu número celular' : 'Tu celular';
+  $('#free-block').hidden = !mode.noRanking;
+  $('#leaders-box').hidden = !!mode.noRanking;
+  $('#name-label').textContent = currentMode() === 'nickname' ? '¿Cómo te llamamos?' : 'Tu nombre o apodo';
+  $('#phone-label').textContent = currentMode() === 'phone' ? 'Tu número celular' : 'Tu celular';
   nameInput.enterKeyHint = mode.asksPhone ? 'done' : 'go';
 
   if (!digits) {
@@ -196,7 +204,7 @@ function renderRegister() {
   phoneDisplay.classList.toggle('valid', digits.length === 10);
   nameInput.classList.toggle('valid', trimmedName().length >= 2);
 
-  startBtn.classList.toggle('compact', store.mode === 'both');
+  startBtn.classList.toggle('compact', currentMode() === 'both');
   const ready = nameValid() && phoneValid();
   startBtn.classList.toggle('ready', ready);
   startBtn.style.opacity = ready ? '1' : '.55';
@@ -238,6 +246,7 @@ function startPreview(name, phone) {
   game.phone = phone;
   game.product = CONFIG.productIds[Math.floor(Math.random() * CONFIG.productIds.length)];
   $('#preview-image').src = productSrc(game.product);
+  $('#time-limit-text').textContent = maxMs() === 60_000 ? '1 minuto' : `${maxMs() / 1000} segundos`;
   setCountdown(CONFIG.previewSeconds);
   show('preview');
   sound.play('start');
@@ -327,8 +336,8 @@ function startGame() {
   const tick = () => {
     const ms = elapsedMs();
     renderTimer(ms);
-    if (ms >= CONFIG.maxGameMs) { finish(false); return; }
-    const secondsLeft = Math.ceil((CONFIG.maxGameMs - ms) / 1000);
+    if (ms >= maxMs()) { finish(false); return; }
+    const secondsLeft = Math.ceil((maxMs() - ms) / 1000);
     if (secondsLeft <= 10 && secondsLeft !== game.lastUrgentSecond) {
       game.lastUrgentSecond = secondsLeft;
       sound.play('tick_urgent');
@@ -340,9 +349,9 @@ function startGame() {
 }
 
 function renderTimer(ms) {
-  const left = CONFIG.maxGameMs - ms;
+  const left = maxMs() - ms;
   $('#timer-text').textContent = formatTime(ms);
-  $('#timer-fill').style.width = `${Math.max(0, left / CONFIG.maxGameMs) * 100}%`;
+  $('#timer-fill').style.width = `${Math.max(0, left / maxMs()) * 100}%`;
   const pill = $('#timer-pill');
   const urgent = left <= 10_000;
   pill.classList.toggle('urgent', urgent);
@@ -475,12 +484,12 @@ function finish(completed) {
   if (screen !== 'game' || game.finalMs != null) return;
   cancelDrag();
   cancelAnimationFrame(game.raf);
-  const ms = completed ? elapsedMs() : CONFIG.maxGameMs;
+  const ms = completed ? elapsedMs() : maxMs();
   game.finalMs = ms;
   renderTimer(ms);
 
   game.record = store.add({
-    mode: store.mode,
+    mode: currentMode(),
     name: game.name,
     phone: game.phone,
     productId: game.product,
@@ -492,7 +501,7 @@ function finish(completed) {
     playedAt: new Date().toISOString(),
   });
 
-  const isRecord = completed && store.positionOf(game.record) === 1;
+  const isRecord = completed && !modeInfo().noRanking && store.positionOf(game.record) === 1;
   sound.playMusic(null, 0.3);
   if (completed) {
     board.classList.add('done');
@@ -539,7 +548,9 @@ function showResult(isRecord) {
     main.textContent = `${r.piecesPlaced} de 9`;
   }
 
-  const pos = store.positionOf(r);
+  const noRanking = !!modeInfo().noRanking;
+  $('#screen-result').classList.toggle('no-ranking', noRanking);
+  const pos = noRanking ? null : store.positionOf(r);
   $('#result-place').textContent = pos ? `Lugar #${pos} de ${store.leaderboard.length}` : '';
 
   $('#lb-event').textContent = store.currentEvent.name;
