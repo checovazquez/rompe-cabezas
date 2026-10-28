@@ -12,6 +12,7 @@ struct AdminView: View {
     @State private var askRename = false
     @State private var eventNameDraft = ""
     @State private var confirmDeleteAll = false
+    @State private var iconName: String?
 
     private var store: RankingStore { game.ranking }
 
@@ -67,6 +68,19 @@ struct AdminView: View {
                     Text("Sonido")
                 } footer: {
                     Text("El volumen general se controla con los botones del iPad. Suena aunque el iPad esté en silencio.")
+                }
+
+                // Icono de la app
+                Section {
+                    HStack(spacing: 20) {
+                        iconChoice(title: "Rompecabezas", image: "icono-b", name: nil)
+                        iconChoice(title: "Estampa", image: "icono-c", name: "AppIconC")
+                    }
+                    .padding(.vertical, 6)
+                } header: {
+                    Text("Ícono de la app")
+                } footer: {
+                    Text("iPadOS muestra un aviso al cambiarlo; es normal.")
                 }
 
                 // 2. Leaderboard actual
@@ -170,7 +184,45 @@ struct AdminView: View {
                 Text("Se eliminan todas las partidas y eventos. Exporta el CSV antes si lo necesitas.")
             }
         }
-        .onAppear { refreshExports() }
+        .onAppear {
+            refreshExports()
+            iconName = UIApplication.shared.alternateIconName
+        }
+    }
+
+    private func iconChoice(title: String, image: String, name: String?) -> some View {
+        let selected = iconName == name
+        return Button {
+            guard !selected, UIApplication.shared.supportsAlternateIcons else { return }
+            Task { @MainActor in
+                do {
+                    try await UIApplication.shared.setAlternateIconName(name)
+                    iconName = name
+                } catch {
+                    iconName = UIApplication.shared.alternateIconName
+                }
+            }
+        } label: {
+            VStack(spacing: 8) {
+                Image(image)
+                    .resizable()
+                    .frame(width: 88, height: 88)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .strokeBorder(selected ? Color.accentColor : Color.clear, lineWidth: 4)
+                    )
+                Text(title)
+                    .font(.subheadline.weight(selected ? .bold : .regular))
+                    .foregroundStyle(.primary)
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(selected ? Color.accentColor : Color.secondary)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Ícono \(title)")
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private var modeFooter: String {
