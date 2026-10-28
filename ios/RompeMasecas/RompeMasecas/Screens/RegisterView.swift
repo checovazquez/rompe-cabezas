@@ -6,6 +6,7 @@ struct RegisterView: View {
     @State private var digits = ""
     @State private var showAdmin = false
     @State private var shakes: CGFloat = 0
+    @State private var appeared = false
     @FocusState private var nameFocused: Bool
 
     private var mode: PlayerMode { game.ranking.mode }
@@ -17,55 +18,120 @@ struct RegisterView: View {
     var body: some View {
         HStack(spacing: 48) {
             brand
-            form.frame(width: 380)
+            form
+                .frame(width: 440)
+                .popIn(appeared, delay: 0.25, from: 0.85)
         }
-        .padding(40)
-        .frame(maxWidth: 940)
-        .card(padding: 8)
-        .padding(24)
+        .padding(.horizontal, 56)
+        .padding(.vertical, 40)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea(.keyboard)
         .contentShape(Rectangle())
         .onTapGesture { nameFocused = false }
+        .onAppear { appeared = true }
         .sheet(isPresented: $showAdmin) {
             AdminView()
         }
     }
 
-    // MARK: - Marca
+    // MARK: - Marca + top 3
 
     private var brand: some View {
-        VStack(spacing: 20) {
+        VStack(alignment: .leading, spacing: 22) {
             Image("logo")
                 .resizable()
                 .scaledToFit()
-                .frame(maxWidth: 230, maxHeight: 290)
+                .frame(width: 80)
+                .frame(width: 128, height: 128)
+                .background(Circle().fill(Theme.yellow))
+                .overlay(Circle().strokeBorder(Theme.ink, lineWidth: 4))
+                .background(Circle().fill(Theme.ink).offset(x: 6, y: 6))
+                .wobble(5, base: -6, duration: 1.8)
                 // Mantener presionado 3 s: panel de administracion.
                 .onLongPressGesture(minimumDuration: 3) {
                     nameFocused = false
                     showAdmin = true
                 }
+                .popIn(appeared, from: 0.3)
 
-            Text("ROMPE-MASECAS")
-                .font(.system(size: 52, weight: .black))
-                .foregroundStyle(Theme.green)
-                .minimumScaleFactor(0.6)
-                .lineLimit(1)
+            VStack(alignment: .leading, spacing: -18) {
+                Text("ROMPE-")
+                Text("MASECAS")
+            }
+            .font(.fiesta(102))
+            .foregroundStyle(Theme.yellow)
+            .shadow(color: Theme.ink, radius: 0, x: 5, y: 5)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .popIn(appeared, delay: 0.08, from: 0.6)
 
-            Text("Memoriza el producto y ármalo\nen menos de 1 minuto")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(Theme.muted)
-                .multilineTextAlignment(.center)
+            HStack(spacing: 12) {
+                chip("1. Memoriza", fill: Theme.cream)
+                chip("2. Arma", fill: Theme.cream)
+                chip("3. Gana", fill: Theme.yellow)
+            }
+            .popIn(appeared, delay: 0.16, from: 0.8)
+
+            leaders
+                .popIn(appeared, delay: 0.32, from: 0.9)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func chip(_ text: String, fill: Color) -> some View {
+        Text(text)
+            .font(.fiesta(22, .bold))
+            .padding(.horizontal, 18)
+            .padding(.vertical, 9)
+            .background(Capsule().fill(fill))
+            .overlay(Capsule().strokeBorder(Theme.ink, lineWidth: 3))
+    }
+
+    private var leaders: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("HOY VAN GANANDO")
+                .font(.fiesta(17, .bold))
+                .tracking(1.5)
+                .foregroundStyle(Theme.yellow)
+
+            let top = Array(game.ranking.top.prefix(3))
+            if top.isEmpty {
+                Text("¡Sé el primero del ranking!")
+                    .font(.fiesta(22, .bold))
+                    .foregroundStyle(Theme.cream)
+            } else {
+                ForEach(0..<top.count, id: \.self) { i in
+                    let r = top[i]
+                    HStack(spacing: 14) {
+                        Text("\(i + 1)")
+                            .font(.fiesta(17))
+                            .foregroundStyle(Theme.ink)
+                            .frame(width: 34, height: 34)
+                            .background(Circle().fill(Theme.medal(i + 1)))
+                        Text(r.displayName)
+                            .lineLimit(1)
+                        Spacer(minLength: 8)
+                        Text(r.completed ? r.timeText : "\(r.piecesPlaced)/9")
+                            .monospacedDigit()
+                    }
+                    .font(.fiesta(22, .bold))
+                    .foregroundStyle(Theme.cream)
+                }
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 20)
+        .frame(maxWidth: 460, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Theme.ink))
     }
 
     // MARK: - Captura
 
     private var form: some View {
-        VStack(spacing: 14) {
+        VStack(alignment: .leading, spacing: 14) {
             if mode.asksName {
-                fieldLabel(mode == .nickname ? "¿Cómo te llamamos en el ranking?" : "Tu nombre o apodo")
+                Text(mode == .nickname ? "¿Cómo te llamamos?" : "Tu nombre o apodo")
+                    .font(.fiesta(mode == .nickname ? 30 : 24))
 
                 TextField("Nombre o apodo", text: $name)
                     .focused($nameFocused)
@@ -75,14 +141,14 @@ struct RegisterView: View {
                     .onSubmit {
                         if !mode.asksPhone { startTapped() }
                     }
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 16)
-                    .frame(minHeight: 64)
-                    .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .font(.fiesta(32, .bold))
+                    .foregroundStyle(Theme.ink)
+                    .padding(.horizontal, 20)
+                    .frame(height: 70)
+                    .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(.white))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .strokeBorder(borderColor(valid: trimmedName.count >= 2, focused: nameFocused), lineWidth: 2.5)
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .strokeBorder(Theme.ink, lineWidth: nameFocused ? 4 : 3)
                     )
                     .modifier(Shake(animatableData: nameValid ? 0 : shakes))
                     .onChange(of: name) { _, newValue in
@@ -93,50 +159,37 @@ struct RegisterView: View {
             }
 
             if mode.asksPhone {
-                fieldLabel(mode == .phone ? "Introduce tu número celular" : "Tu celular")
+                Text(mode == .phone ? "Tu número celular" : "Tu celular")
+                    .font(.fiesta(mode == .phone ? 30 : 24))
 
                 Text(displayPhone)
-                    .font(.system(size: 32, weight: .bold, design: .rounded).monospacedDigit())
-                    .foregroundStyle(digits.isEmpty ? Theme.muted.opacity(0.5) : Theme.text)
+                    .font(.fiesta(32, .bold).monospacedDigit())
+                    .foregroundStyle(digits.isEmpty ? Theme.muted.opacity(0.6) : Theme.ink)
                     .frame(maxWidth: .infinity, minHeight: 64)
-                    .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(.white))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .strokeBorder(digits.count == 10 ? Theme.green : Theme.line, lineWidth: 2.5)
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .strokeBorder(Theme.ink, lineWidth: digits.count == 10 ? 4 : 3)
                     )
                     .modifier(Shake(animatableData: phoneValid ? 0 : shakes))
 
-                Keypad(digits: $digits, keyHeight: mode == .both ? 52 : 60) {
+                Keypad(digits: $digits, keyHeight: mode == .both ? 50 : 58) {
                     nameFocused = false
                 }
             }
 
-            if mode == .nickname {
-                Text("Aparecerás en el Top \(GameConfig.rankingLimit)")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Theme.muted)
-            }
-
-            Button("Empezar") { startTapped() }
-                .buttonStyle(PrimaryButtonStyle())
-                .opacity(isValid ? 1 : 0.5)
-                .padding(.top, 4)
+            Button("¡A jugar!") { startTapped() }
+                .buttonStyle(StickerButtonStyle(height: mode == .both ? 74 : 84))
+                .pulse(isValid)
+                .padding(.top, 6)
         }
-    }
-
-    private func fieldLabel(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 20, weight: .semibold))
-            .foregroundStyle(Theme.muted)
-    }
-
-    private func borderColor(valid: Bool, focused: Bool) -> Color {
-        if valid { return Theme.green }
-        return focused ? Theme.green.opacity(0.5) : Theme.line
+        .padding(28)
+        .sticker()
     }
 
     private func startTapped() {
         guard isValid else {
+            SoundManager.shared.play(.wrong)
             withAnimation(.linear(duration: 0.3)) { shakes += 1 }
             return
         }
@@ -157,7 +210,7 @@ struct RegisterView: View {
 
 private struct Keypad: View {
     @Binding var digits: String
-    var keyHeight: CGFloat = 60
+    var keyHeight: CGFloat = 58
     var onKey: () -> Void = {}
 
     private let rows: [[String]] = [
@@ -168,7 +221,7 @@ private struct Keypad: View {
     ]
 
     var body: some View {
-        Grid(horizontalSpacing: 12, verticalSpacing: 10) {
+        Grid(horizontalSpacing: 12, verticalSpacing: 12) {
             ForEach(rows, id: \.self) { row in
                 GridRow {
                     ForEach(row, id: \.self) { key in
@@ -178,32 +231,33 @@ private struct Keypad: View {
                             tap(key)
                         } label: {
                             label(for: key)
-                                .frame(maxWidth: .infinity, minHeight: keyHeight)
-                                .background(Theme.bg, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .strokeBorder(Theme.line, lineWidth: 2)
-                                )
                         }
-                        .buttonStyle(KeyStyle())
+                        .buttonStyle(StickerButtonStyle(fill: Theme.cream, height: keyHeight, fontSize: 30, radius: 14, depth: 4))
+                        .accessibilityLabel(accessibility(for: key))
                     }
                 }
             }
         }
+        .padding(.bottom, 4)
     }
 
     @ViewBuilder
     private func label(for key: String) -> some View {
         switch key {
         case "borrar":
-            Image(systemName: "delete.left.fill").font(.system(size: 24, weight: .semibold))
-                .foregroundStyle(Theme.muted)
+            Image(systemName: "delete.left.fill").font(.system(size: 24, weight: .bold))
         case "limpiar":
-            Text("Limpiar").font(.system(size: 18, weight: .bold))
-                .foregroundStyle(Theme.muted)
+            Text("Limpiar").font(.fiesta(18, .bold))
         default:
-            Text(key).font(.system(size: 30, weight: .bold, design: .rounded))
-                .foregroundStyle(Theme.text)
+            Text(key)
+        }
+    }
+
+    private func accessibility(for key: String) -> String {
+        switch key {
+        case "borrar": return "Borrar"
+        case "limpiar": return "Limpiar"
+        default: return key
         }
     }
 
@@ -216,14 +270,5 @@ private struct Keypad: View {
         default:
             if digits.count < 10 { digits.append(key) }
         }
-    }
-}
-
-private struct KeyStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.94 : 1)
-            .brightness(configuration.isPressed ? -0.05 : 0)
-            .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
     }
 }
