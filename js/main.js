@@ -283,6 +283,7 @@ function buildBoard() {
 
 function startGame() {
   clearTimers();
+  cancelDrag();
   const correct = ALL_PIECES.filter((p) => p.productId === game.product);
   const distractors = shuffle(ALL_PIECES.filter((p) => p.productId !== game.product)).slice(0, CONFIG.distractorCount);
   game.tray = shuffle([...correct, ...distractors]);
@@ -369,9 +370,14 @@ function renderProgress() {
 let drag = null;
 
 function beginDrag(e, piece, img) {
-  if (screen !== 'game' || game.finalMs != null || drag) return;
+  if (screen !== 'game' || game.finalMs != null) return;
+  if (drag) {
+    // Otro dedo mientras ya se arrastra: ignorar. Si quedó un arrastre colgado, limpiarlo.
+    if (drag.pointerId !== e.pointerId && document.contains(drag.img)) return;
+    cancelDrag();
+  }
   e.preventDefault();
-  img.setPointerCapture?.(e.pointerId);
+  try { img.setPointerCapture(e.pointerId); } catch { /* no soportado */ }
   const size = slots[0].getBoundingClientRect().width / scale;
   const ghost = document.createElement('img');
   ghost.className = 'float-piece';
@@ -384,9 +390,22 @@ function beginDrag(e, piece, img) {
   sound.play('pickup');
   moveDrag(e);
 
-  img.addEventListener('pointermove', moveDrag);
-  img.addEventListener('pointerup', endDrag);
-  img.addEventListener('pointercancel', endDrag);
+  // En window: el "soltar" llega aunque el dedo salga de la pieza o se pierda la captura.
+  window.addEventListener('pointermove', moveDrag);
+  window.addEventListener('pointerup', endDrag);
+  window.addEventListener('pointercancel', endDrag);
+}
+
+/** Quita la pieza flotante y deja todo como si no se hubiera agarrado nada. */
+function cancelDrag() {
+  if (!drag) return;
+  window.removeEventListener('pointermove', moveDrag);
+  window.removeEventListener('pointerup', endDrag);
+  window.removeEventListener('pointercancel', endDrag);
+  drag.ghost.remove();
+  drag.img.classList.remove('dragging');
+  slots.forEach((s) => s.classList.remove('hover'));
+  drag = null;
 }
 
 function slotAt(clientX, clientY) {
@@ -410,14 +429,8 @@ function moveDrag(e) {
 
 function endDrag(e) {
   if (!drag || e.pointerId !== drag.pointerId) return;
-  const { piece, img, ghost } = drag;
-  img.removeEventListener('pointermove', moveDrag);
-  img.removeEventListener('pointerup', endDrag);
-  img.removeEventListener('pointercancel', endDrag);
-  ghost.remove();
-  img.classList.remove('dragging');
-  slots.forEach((s) => s.classList.remove('hover'));
-  drag = null;
+  const { piece, img } = drag;
+  cancelDrag();
 
   const target = e.type === 'pointerup' ? slotAt(e.clientX, e.clientY) : null;
   const position = target ? Number(target.dataset.position) : null;
@@ -460,6 +473,7 @@ function drop(piece, position) {
 
 function finish(completed) {
   if (screen !== 'game' || game.finalMs != null) return;
+  cancelDrag();
   cancelAnimationFrame(game.raf);
   const ms = completed ? elapsedMs() : CONFIG.maxGameMs;
   game.finalMs = ms;
@@ -564,6 +578,8 @@ function showResult(isRecord) {
 
 function reset() {
   clearTimers();
+  cancelDrag();
+  $('#float-layer').replaceChildren();
   confetti.clear();
   game.name = null;
   game.phone = null;
