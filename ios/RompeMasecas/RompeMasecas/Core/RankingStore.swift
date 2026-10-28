@@ -28,6 +28,8 @@ final class RankingStore {
         if events.isEmpty {
             events = [GameEvent(name: "Evento 1")]
             save()
+        } else {
+            WidgetBridge.publish(self)
         }
     }
 
@@ -187,6 +189,7 @@ final class RankingStore {
             try? data.write(to: jsonURL, options: .atomic)
         }
         try? csv().write(to: csvURL, atomically: true, encoding: .utf8)
+        WidgetBridge.publish(self)
     }
 
     private static func escape(_ field: String) -> String {
