@@ -17,7 +17,9 @@ struct GameView: View {
             let timerHeight: CGFloat = 104
             let boardChrome: CGFloat = 72 // titulo + padding de la tarjeta
             let boardHeight = max(300, geo.size.height - timerHeight - 16 - boardChrome)
-            let boardSize = CGSize(width: boardHeight * 0.8, height: boardHeight) // piezas 4:5
+            // Las piezas salen de la foto cuadrada estirada a 4:5; en cuadrado recuperan su proporcion real.
+            let boardSide = min(boardHeight, geo.size.width * 0.5)
+            let boardSize = CGSize(width: boardSide, height: boardSide)
 
             HStack(spacing: 18) {
                 leftPanel
@@ -67,14 +69,11 @@ struct GameView: View {
 
     private var tray: some View {
         GeometryReader { geo in
-            let cols = 5
-            let rows = Int((Double(game.trayPieces.count) / Double(cols)).rounded(.up))
             let gap: CGFloat = 12
-            let width = min(
-                (geo.size.width - gap * CGFloat(cols - 1)) / CGFloat(cols),
-                (geo.size.height - gap * CGFloat(max(rows - 1, 0))) / CGFloat(max(rows, 1)) * 0.8
-            )
-            let size = CGSize(width: max(width, 40), height: max(width, 40) * 1.25)
+            let layout = trayLayout(count: game.trayPieces.count, in: geo.size, gap: gap)
+            let cols = layout.cols
+            let rows = layout.rows
+            let size = CGSize(width: layout.side, height: layout.side)
 
             VStack(spacing: gap) {
                 ForEach(0..<rows, id: \.self) { r in
@@ -92,6 +91,20 @@ struct GameView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+    }
+
+    /// Columnas que dan la pieza cuadrada mas grande posible en el espacio disponible.
+    private func trayLayout(count: Int, in space: CGSize, gap: CGFloat) -> (cols: Int, rows: Int, side: CGFloat) {
+        var best = (cols: 5, rows: 4, side: CGFloat(40))
+        for cols in 3...7 {
+            let rows = Int((Double(max(count, 1)) / Double(cols)).rounded(.up))
+            let side = min(
+                (space.width - gap * CGFloat(cols - 1)) / CGFloat(cols),
+                (space.height - gap * CGFloat(rows - 1)) / CGFloat(rows)
+            )
+            if side > best.side { best = (cols, rows, side) }
+        }
+        return best
     }
 
     private func trayCell(_ piece: Piece, size: CGSize) -> some View {
@@ -161,7 +174,6 @@ struct GameView: View {
             if let placedPiece {
                 Image(placedPiece.imageName)
                     .resizable()
-                    .scaledToFill()
                     .transition(.scale(scale: 1.15).combined(with: .opacity))
             } else {
                 Rectangle()
@@ -199,7 +211,7 @@ struct GameView: View {
     }
 
     private var floatingSize: CGSize {
-        slotFrames[1]?.size ?? CGSize(width: 140, height: 175)
+        slotFrames[1]?.size ?? CGSize(width: 150, height: 150)
     }
 
     @ViewBuilder
@@ -312,7 +324,6 @@ struct PieceTile: View {
     var body: some View {
         Image(piece.imageName)
             .resizable()
-            .scaledToFit()
             .background(.white)
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay(
