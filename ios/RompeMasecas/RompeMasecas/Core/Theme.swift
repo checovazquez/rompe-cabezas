@@ -1,4 +1,7 @@
 import SwiftUI
+import CoreText
+
+// MARK: - Colores (v2 · Fiesta de mercado)
 
 extension Color {
     init(hex: UInt32) {
@@ -11,63 +14,115 @@ extension Color {
 }
 
 enum Theme {
-    static let green = Color(hex: 0x0F7A3A)
-    static let greenDark = Color(hex: 0x0B5F2D)
-    static let yellow = Color(hex: 0xF3DD8A)
-    static let bg = Color(hex: 0xF3F0EB)
-    static let card = Color.white
-    static let line = Color(hex: 0xD9CFC5)
-    static let dashed = Color(hex: 0xD8CBBF)
-    static let text = Color(hex: 0x2A2A2A)
-    static let muted = Color(hex: 0x6E6A66)
-    static let pieceBorder = Color(hex: 0x444444)
-    static let wrong = Color(hex: 0xD62828)
-    static let radius: CGFloat = 24
+    static let green = Color(hex: 0x0E6B33)    // fondo
+    static let ink = Color(hex: 0x0A3D1E)      // bordes, sombras y texto
+    static let yellow = Color(hex: 0xFFD60A)
+    static let cream = Color(hex: 0xFFF8E6)
+    static let cream2 = Color(hex: 0xF4ECD6)
+    static let boardBg = Color(hex: 0xF1E9D2)
+    static let dashed = Color(hex: 0xC9BFA6)
+    static let muted = Color(hex: 0x4A6B55)
+    static let mint = Color(hex: 0xE8F5EC)
+    static let orange = Color(hex: 0xFF8A3D)
+    static let wrong = Color(hex: 0xE5383B)
+    static let silver = Color(hex: 0xE6E1D3)
+    static let bronze = Color(hex: 0xE0A458)
+
+    static let confetti: [Color] = [yellow, cream, orange, Color(hex: 0x7ED957), Color(hex: 0x4CC9F0)]
+
+    static func medal(_ position: Int) -> Color {
+        switch position {
+        case 1: return yellow
+        case 2: return silver
+        case 3: return bronze
+        default: return .clear
+        }
+    }
 }
 
-struct CardModifier: ViewModifier {
-    var padding: CGFloat
+// MARK: - Tipografia (Bricolage Grotesque, OFL)
+
+enum AppFonts {
+    static let files = ["BricolageGrotesque-Medium", "BricolageGrotesque-Bold", "BricolageGrotesque-ExtraBold"]
+
+    /// Registra las fuentes del bundle (no hace falta tocar Info.plist).
+    static func register() {
+        for name in files {
+            guard let url = Bundle.main.url(forResource: name, withExtension: "ttf") else { continue }
+            CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+        }
+    }
+}
+
+extension Font {
+    /// Fuente de la app. .medium / .bold / .heavy (ExtraBold).
+    static func fiesta(_ size: CGFloat, _ weight: Font.Weight = .heavy) -> Font {
+        let name: String
+        if weight == .medium || weight == .regular {
+            name = "BricolageGrotesque-Medium"
+        } else if weight == .bold || weight == .semibold {
+            name = "BricolageGrotesque-Bold"
+        } else {
+            name = "BricolageGrotesque-ExtraBold"
+        }
+        return .custom(name, size: size)
+    }
+}
+
+// MARK: - Sticker: relleno + borde grueso + sombra solida desplazada
+
+struct StickerModifier: ViewModifier {
+    var fill: Color = Theme.cream
+    var radius: CGFloat = 28
+    var border: CGFloat = 4
+    var shadow: CGFloat = 8
 
     func body(content: Content) -> some View {
-        content
-            .padding(padding)
-            .background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: Theme.radius, style: .continuous)
-                    .strokeBorder(Theme.line, lineWidth: 3)
-            )
-            .shadow(color: .black.opacity(0.08), radius: 15, y: 10)
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+        return content
+            .background(shape.fill(fill))
+            .overlay(shape.strokeBorder(Theme.ink, lineWidth: border))
+            .background(shape.fill(Theme.ink).offset(x: shadow, y: shadow))
     }
 }
 
 extension View {
-    func card(padding: CGFloat = 20) -> some View {
-        modifier(CardModifier(padding: padding))
+    func sticker(fill: Color = Theme.cream, radius: CGFloat = 28, border: CGFloat = 4, shadow: CGFloat = 8) -> some View {
+        modifier(StickerModifier(fill: fill, radius: radius, border: border, shadow: shadow))
     }
 }
 
-struct PrimaryButtonStyle: ButtonStyle {
+/// Boton que se "hunde" al presionarlo.
+struct StickerButtonStyle: ButtonStyle {
+    var fill: Color = Theme.yellow
+    var height: CGFloat = 84
+    var fontSize: CGFloat = 34
+    var radius: CGFloat = 22
+    var depth: CGFloat = 6
+
     func makeBody(configuration: Configuration) -> some View {
-        PrimaryButtonBody(configuration: configuration)
+        StyledBody(configuration: configuration, style: self)
     }
 
-    private struct PrimaryButtonBody: View {
+    private struct StyledBody: View {
         let configuration: ButtonStyleConfiguration
+        let style: StickerButtonStyle
         @Environment(\.isEnabled) private var isEnabled
 
         var body: some View {
+            let shape = RoundedRectangle(cornerRadius: style.radius, style: .continuous)
+            let pressed = configuration.isPressed
             configuration.label
-                .font(.system(size: 24, weight: .heavy))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 32)
-                .frame(minWidth: 260, minHeight: 64)
-                .background(
-                    Theme.green.opacity(isEnabled ? 1 : 0.35),
-                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-                )
-                .shadow(color: .black.opacity(isEnabled ? 0.12 : 0), radius: 10, y: 6)
-                .scaleEffect(configuration.isPressed ? 0.96 : 1)
-                .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+                .font(.fiesta(style.fontSize))
+                .foregroundStyle(Theme.ink)
+                .padding(.horizontal, 24)
+                .frame(maxWidth: .infinity, minHeight: style.height)
+                .background(shape.fill(style.fill))
+                .overlay(shape.strokeBorder(Theme.ink, lineWidth: 4))
+                .offset(y: pressed ? style.depth : 0)
+                .background(shape.fill(Theme.ink).offset(y: style.depth))
+                .opacity(isEnabled ? 1 : 0.55)
+                .animation(.spring(response: 0.18, dampingFraction: 0.55), value: pressed)
         }
     }
 }

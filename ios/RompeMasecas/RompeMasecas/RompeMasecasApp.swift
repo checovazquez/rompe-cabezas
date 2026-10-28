@@ -4,6 +4,10 @@ import SwiftUI
 struct RompeMasecasApp: App {
     @State private var game = GameModel(ranking: RankingStore())
 
+    init() {
+        AppFonts.register()
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()
@@ -19,22 +23,29 @@ struct RompeMasecasApp: App {
 struct RootView: View {
     @Environment(GameModel.self) private var game
 
+    private var screenTransition: AnyTransition {
+        .asymmetric(
+            insertion: .scale(scale: 0.94).combined(with: .opacity),
+            removal: .scale(scale: 1.04).combined(with: .opacity)
+        )
+    }
+
     var body: some View {
         ZStack {
-            Theme.bg.ignoresSafeArea()
+            DotsBackground()
 
             switch game.screen {
             case .register:
-                RegisterView().transition(.opacity)
+                RegisterView().transition(screenTransition)
             case .preview:
-                PreviewView().transition(.opacity)
+                PreviewView().transition(screenTransition)
             case .game:
                 GameView().transition(.opacity)
             case .result:
-                ResultView().transition(.opacity)
+                ResultView().transition(screenTransition)
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: game.screen)
+        .animation(.spring(response: 0.45, dampingFraction: 0.85), value: game.screen)
         .onChange(of: game.screen, initial: true) { _, screen in
             // Musica por pantalla; el conteo y el resultado van sin musica.
             switch screen {
@@ -44,7 +55,7 @@ struct RootView: View {
             case .result: break // el GameModel ya la apago con fade
             }
         }
-        .foregroundStyle(Theme.text)
+        .foregroundStyle(Theme.ink)
         .preferredColorScheme(.light)
         .statusBarHidden()
         .persistentSystemOverlays(.hidden)
