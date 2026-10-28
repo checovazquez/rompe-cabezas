@@ -40,8 +40,12 @@ final class SoundManager {
         musicVolume = d.float(forKey: "snd.musicVolume")
 
         // .playback: suena aunque el iPad este en silencio.
-        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
-        try? AVAudioSession.sharedInstance().setActive(true)
+        // Fuera del hilo principal: activar la sesion puede tardar y trabar la UI.
+        DispatchQueue.global(qos: .userInitiated).async {
+            let session = AVAudioSession.sharedInstance()
+            try? session.setCategory(.playback, mode: .default)
+            try? session.setActive(true)
+        }
 
         for s in SFX.allCases { load(sfx: s.rawValue) }
         for i in 1...9 { load(sfx: "correct_\(i)") }
