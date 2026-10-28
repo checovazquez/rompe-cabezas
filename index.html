@@ -1,86 +1,209 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ROMPE-MASECAS</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Rompe-MASECAS</title>
+  <meta name="description" content="Memoriza el empaque MASECA y ármalo en menos de 1 minuto.">
+  <meta name="theme-color" content="#0E6B33">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Rompe-MASECAS">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="assets/icons/favicon.png">
+  <link rel="preload" href="assets/fonts/bricolage-800.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
-  <div id="app">
+<div id="viewport">
+  <div class="dots-bg" aria-hidden="true"></div>
+  <div id="stage" aria-live="polite">
 
-    <!-- Pantalla 1: Registro -->
-    <section id="screen-register" class="screen active">
-      <div class="container">
-        <img src="assets/logo-maseca.png" alt="MASECA" class="logo">
-        <h1>ROMPE-MASECAS</h1>
-        <p>Introduce tu número celular</p>
+    <!-- ============ INICIO ============ -->
+    <section id="screen-register" class="screen" aria-label="Inicio">
+      <div class="brand">
+        <button type="button" id="logo-admin" class="logo-badge wobble pop" aria-label="Logo MASECA (mantén presionado 3 segundos para administración)">
+          <img src="assets/logo-maseca.png" alt="">
+        </button>
 
-        <input type="tel" id="phone-input" maxlength="10" placeholder="10 dígitos">
-        <button id="start-btn">Empezar</button>
+        <h1 class="big-title pop" style="--d:.08s">ROMPE-<br>MASECAS</h1>
+
+        <div class="chips pop" style="--d:.16s">
+          <span class="chip">1. Memoriza</span>
+          <span class="chip">2. Arma</span>
+          <span class="chip chip-yellow">3. Gana</span>
+        </div>
+
+        <div class="leaders pop" style="--d:.32s">
+          <div class="leaders-title">HOY VAN GANANDO</div>
+          <div id="leaders-list"></div>
+        </div>
+      </div>
+
+      <form id="register-form" class="sticker register-form pop" style="--d:.25s" novalidate>
+        <div id="name-block" class="field-block">
+          <label for="name-input" id="name-label" class="field-label">¿Cómo te llamamos?</label>
+          <input id="name-input" class="text-field" type="text" maxlength="16" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Nombre o apodo" enterkeyhint="go">
+        </div>
+
+        <div id="phone-block" class="field-block">
+          <span id="phone-label" class="field-label">Tu número celular</span>
+          <output id="phone-display" class="text-field phone-display" aria-live="polite">10 dígitos</output>
+          <div id="keypad" class="keypad" role="group" aria-label="Teclado numérico"></div>
+        </div>
+
+        <button type="submit" id="start-btn" class="btn-sticker btn-yellow btn-big">¡A jugar!</button>
+      </form>
+    </section>
+
+    <!-- ============ MEMORIZA ============ -->
+    <section id="screen-preview" class="screen" aria-label="Memoriza el producto">
+      <div class="preview-left">
+        <h2 class="big-title preview-title pop">¡MEMO-<br>RÍZALO!</h2>
+        <div class="countdown-row pop" style="--d:.1s">
+          <div id="countdown" class="countdown"><span id="countdown-num">10</span></div>
+          <p class="countdown-caption">segundos para<br>memorizar</p>
+        </div>
+        <p class="preview-hint pop" style="--d:.2s">Después tendrás 1 minuto para armarlo.<br>¡Ojo con las piezas trampa!</p>
+      </div>
+      <div class="sticker sticker-white preview-card wobble-soft pop" style="--d:.15s">
+        <img id="preview-image" alt="Producto a memorizar">
       </div>
     </section>
 
-    <!-- Pantalla 2: Memoriza -->
-    <section id="screen-preview" class="screen">
-      <div class="container">
-        <h2>Memoriza el producto</h2>
-        <div id="preview-timer">10</div>
-        <img id="preview-image" src="" alt="Producto a memorizar" class="preview-image">
-      </div>
-    </section>
-
-    <!-- Pantalla 3: Juego -->
-    <section id="screen-game" class="screen">
-      <div class="game-shell">
-    
-        <div class="game-panel-left">
-          <div class="game-brand">
-            <h1>ROMPE-MASECAS</h1>
-            <p class="game-instructions">
-              Arrastra las piezas correctas al lugar correcto. Tienes 1 minuto.
-            </p>
-          </div>
-    
-          <div class="pieces-card">
-            <div class="pieces-title">Piezas</div>
-            <div id="pieces-area" class="pieces-area"></div>
+    <!-- ============ JUEGO ============ -->
+    <section id="screen-game" class="screen" aria-label="Juego">
+      <header class="game-header">
+        <div class="game-brand">
+          <div class="logo-badge logo-small wobble-fast"><img src="assets/logo-maseca.png" alt=""></div>
+          <div>
+            <div class="game-title">ROMPE-MASECAS</div>
+            <div id="game-subtitle" class="game-subtitle">Arma el empaque</div>
           </div>
         </div>
-    
-        <div class="game-panel-right">
-          <div class="game-timer-card">
-            <div class="timer-label">Tiempo</div>
-            <div id="game-timer">00:00.00</div>
+        <div class="progress" id="progress" aria-label="0 de 9 piezas"></div>
+        <div id="timer-pill" class="sticker timer-pill">
+          <div id="timer-text" class="timer-text">00:00.00</div>
+          <div class="timer-bar"><div id="timer-fill"></div></div>
+        </div>
+      </header>
+
+      <div class="game-body">
+        <div class="sticker tray-card">
+          <div class="card-head">
+            <span class="card-title">Piezas</span>
+            <span class="card-note">11 son trampa</span>
           </div>
-    
-          <div class="board-card">
-            <div class="board-title">Arma el producto</div>
-            <div id="board" class="board"></div>
+          <div id="tray" class="tray"></div>
+        </div>
+
+        <div class="sticker board-card">
+          <span class="card-title">Arma el producto</span>
+          <div id="board" class="board"></div>
+        </div>
+      </div>
+
+      <div id="go-splash" class="go-splash" aria-hidden="true">¡ARMA!</div>
+    </section>
+
+    <!-- ============ RESULTADO ============ -->
+    <section id="screen-result" class="screen" aria-label="Resultado">
+      <div class="summary">
+        <div id="record-badge" class="record-badge pop" style="--d:.35s">¡NUEVO RÉCORD!</div>
+        <h2 id="result-title" class="big-title result-title pop"></h2>
+        <div class="sticker result-card pop" style="--d:.1s">
+          <img id="result-product" alt="">
+          <div class="result-info">
+            <div id="result-caption" class="result-caption"></div>
+            <div id="result-main" class="result-main"></div>
+            <div id="result-stats" class="result-stats"></div>
           </div>
         </div>
-    
+        <div id="result-place" class="place-pill pop" style="--d:.5s"></div>
+        <div class="result-actions pop" style="--d:.6s">
+          <button type="button" id="restart-btn" class="btn-sticker btn-cream">Jugar de nuevo</button>
+          <div id="reset-countdown" class="reset-countdown"></div>
+        </div>
+      </div>
+
+      <div class="sticker leaderboard pop" style="--d:.2s">
+        <div class="card-head">
+          <span class="card-title lb-title">Top 10</span>
+          <span id="lb-event" class="card-note"></span>
+        </div>
+        <ol id="lb-list" class="lb-list"></ol>
       </div>
     </section>
 
-    <!-- Pantalla 4: Resultado -->
-    <section id="screen-result" class="screen">
-      <div class="container result-container">
-        <h2 id="result-title">Resultado</h2>
-        <p id="result-time">Tu tiempo: 00:00.00</p>
-    
-        <div class="ranking-box">
-          <h3>Top 20</h3>
-          <div id="ranking-list" class="ranking-list"></div>
-        </div>
-    
-        <button id="restart-btn">Jugar de nuevo</button>
-      </div>
-    </section>
-
+    <canvas id="fx" aria-hidden="true"></canvas>
+    <div id="float-layer" aria-hidden="true"></div>
   </div>
+</div>
 
-  <script src="js/app.js"></script>
+<div id="rotate-hint" aria-hidden="true">
+  <div>Gira tu dispositivo para jugar</div>
+</div>
+
+<!-- ============ ADMIN ============ -->
+<dialog id="admin" aria-labelledby="admin-title">
+  <form method="dialog" class="admin-top">
+    <h2 id="admin-title">Administración</h2>
+    <button class="admin-done">Listo</button>
+  </form>
+
+  <section class="admin-section">
+    <h3>Jugadores</h3>
+    <div class="segmented" id="mode-picker" role="radiogroup" aria-label="Identificar jugador por"></div>
+    <p class="admin-foot" id="mode-foot"></p>
+  </section>
+
+  <section class="admin-section">
+    <h3>Sonido</h3>
+    <label class="admin-row"><span>Música</span><input type="checkbox" id="music-on" class="switch"></label>
+    <label class="admin-row"><span>Volumen música</span><input type="range" id="music-vol" min="0" max="1" step="0.05"></label>
+    <label class="admin-row"><span>Efectos</span><input type="checkbox" id="sfx-on" class="switch"></label>
+    <label class="admin-row"><span>Volumen efectos</span><input type="range" id="sfx-vol" min="0" max="1" step="0.05"></label>
+    <p class="admin-foot">El volumen general se controla con los botones del dispositivo.</p>
+  </section>
+
+  <section class="admin-section">
+    <h3>Leaderboard actual</h3>
+    <div class="admin-row"><span>Evento</span><strong id="adm-event"></strong></div>
+    <div class="admin-row"><span>Partidas</span><strong id="adm-games"></strong></div>
+    <div class="admin-row"><span>Mejor tiempo</span><strong id="adm-best"></strong></div>
+    <div class="admin-inline">
+      <input type="text" id="rename-input" maxlength="40" placeholder="Nombre del evento" aria-label="Nuevo nombre del evento actual">
+      <button type="button" id="rename-btn">Renombrar</button>
+    </div>
+    <div class="admin-inline">
+      <input type="text" id="new-event-input" maxlength="40" placeholder="Ej. Soriana Contry 28-oct" aria-label="Nombre del nuevo evento">
+      <button type="button" id="new-event-btn">Nuevo leaderboard</button>
+    </div>
+    <p class="admin-foot">“Nuevo leaderboard” deja el Top 10 en ceros. Las partidas anteriores se quedan guardadas para el análisis.</p>
+  </section>
+
+  <section class="admin-section">
+    <h3>Datos</h3>
+    <button type="button" class="admin-btn" id="export-current">Exportar CSV · evento actual</button>
+    <button type="button" class="admin-btn" id="export-all">Exportar CSV · todas las partidas</button>
+    <p class="admin-foot">Incluye tiempo, errores, precisión y el tiempo de cada pieza. Los datos viven en este navegador: si borras los datos del sitio, se pierden.</p>
+  </section>
+
+  <section class="admin-section">
+    <h3>Historial</h3>
+    <div class="admin-row"><span>Total de partidas</span><strong id="adm-total"></strong></div>
+    <div id="adm-history"></div>
+  </section>
+
+  <section class="admin-section">
+    <button type="button" class="admin-btn admin-danger" id="delete-all">Borrar todos los datos</button>
+    <p class="admin-foot">Para eventos en iPad: agrega la página a la pantalla de inicio (Compartir › Agregar a inicio) y activa Acceso Guiado (Ajustes › Accesibilidad › Acceso guiado).</p>
+  </section>
+</dialog>
+
+<script type="module" src="js/main.js"></script>
 </body>
 </html>
