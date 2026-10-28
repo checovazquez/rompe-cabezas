@@ -240,11 +240,23 @@ $('#screen-register').addEventListener('pointerdown', (e) => {
 
 // ---------------------------------------------------------------- Memoriza
 
+/** Producto al azar, pero nunca el mismo que en la partida anterior (aunque se recargue la página). */
+const LAST_PRODUCT_KEY = 'rompeMasecas.lastProduct';
+function pickProduct() {
+  let last = null;
+  try { last = Number(localStorage.getItem(LAST_PRODUCT_KEY)); } catch { /* sin almacenamiento */ }
+  const options = CONFIG.productIds.filter((id) => id !== last);
+  const pool = options.length ? options : CONFIG.productIds;
+  const id = pool[Math.floor(Math.random() * pool.length)];
+  try { localStorage.setItem(LAST_PRODUCT_KEY, String(id)); } catch { /* sin almacenamiento */ }
+  return id;
+}
+
 function startPreview(name, phone) {
   clearTimers();
   game.name = name;
   game.phone = phone;
-  game.product = CONFIG.productIds[Math.floor(Math.random() * CONFIG.productIds.length)];
+  game.product = pickProduct();
   $('#preview-image').src = productSrc(game.product);
   $('#time-limit-text').textContent = maxMs() === 60_000 ? '1 minuto' : `${maxMs() / 1000} segundos`;
   setCountdown(CONFIG.previewSeconds);
